@@ -1,0 +1,31 @@
+properties:
+  template:
+    containers:
+    - env:
+      - name: TRANSFORMERS_CACHE
+        value: /tmp/model_cache
+      image: containerregistryashu.azurecr.io/my-llm-service:v2
+      name: my-llm-service
+      resources:
+        cpu: 2.0
+        memory: 4Gi
+      probes:
+      - type: startup
+        httpGet:
+          path: /health
+          port: 8000
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        failureThreshold: 30
+        timeoutSeconds: 5
+      - type: liveness
+        httpGet:
+          path: /health
+          port: 8000
+        initialDelaySeconds: 30
+        periodSeconds: 30
+        failureThreshold: 3
+        timeoutSeconds: 5
+    scale:
+      maxReplicas: 1
+      minReplicas: 0
