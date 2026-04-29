@@ -2,7 +2,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 class InferenceEngine:
-    def __init__(self, model_id="microsoft/Phi-3-mini-4k-instruct"):
+    def __init__(self, model_id="HuggingFaceTB/SmolLM2-135M-Instruct"):
         self.model_id = model_id
         self.generator = None
 
