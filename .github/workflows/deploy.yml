@@ -1,0 +1,55 @@
+name: Build and Deploy to Azure Container Apps
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+env:
+  ACR_NAME: containerregistryashu
+  ACR_LOGIN_SERVER: containerregistryashu.azurecr.io
+  IMAGE_NAME: my-llm-service
+  RESOURCE_GROUP: my_container_registry
+  CONTAINER_APP_NAME: my-llm-service
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout the code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Login to Azure using Service Principal credentials
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # 3. Login to Azure Container Registry
+      - name: Login to ACR
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      # 4. Build and push Docker image with commit SHA tag + latest
+      - name: Build and push image
+        run: |
+          IMAGE_TAG=${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          IMAGE_LATEST=${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest
+
+          docker build \
+            --platform linux/amd64 \
+            -t $IMAGE_TAG \
+            -t $IMAGE_LATEST \
+            .
+
+          docker push $IMAGE_TAG
+          docker push $IMAGE_LATEST
+
+      # 5. Deploy to Azure Container Apps
+      - name: Deploy to Container Apps
+        run: |
+          az containerapp update \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
